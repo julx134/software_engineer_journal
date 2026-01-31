@@ -1,38 +1,40 @@
 # Journal Entry: January 26, 2026
 
 **Project ID:** f59a6424-be1f-49c7-82df-01efe73099e8 <br>
+**Series:** 001 <br>
 **TAGS:** #pyarmor, #django #architecture, #obfuscation #security, #reverse_engineering_security, #design_pattern
 
 ### Description:
 
 > This project was to research and implement a way to obfuscate certain modules of the application which contains intellectual property. This was necessasry due to the application code being directly deployed unto the client's machine. <br>
 
----
+## Context
 
-## Part 1: Python Obfuscation Strategy (Pyarmor)
+The application runs Django ASGI using Uvicorn. We have a engine directory/module that is imported in Django Views to orchestrate and execute business logic which needed to be protected/obfuscated. <br><br>
+I took over the task from my manager who was working already working on it midway (he had to drop the task for other priorities). He had caught me up on using a previous version of pyarmor (v7.7) which worked, however, the newer version (v9.2) did not work due to having to use **RFT** mode (Rename Function/Type). <br>
 
-### 1. Standard Obfuscation vs. RFT (Rename Function/Type)
+## Part 1: Obfuscation Research and Challenges
+
+### 1. Pyarmor Standard Obfuscation vs. RFT
 
 | Feature       | Standard Obfuscation (`pyarmor gen`)                                                | RFT (`pyarmor gen --enable-rft`)                                        |
 | :------------ | :---------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
 | **Mechanism** | Encrypts Python bytecode. Preserves symbol names.                                   | Rewrites source code to rename symbols (e.g., `get_user` $\to$ `f_x9`). |
-| **Use Case**  | Framework-heavy apps (Django/FastAPI) using reflection.                             | Algorithmic IP where logic must be hidden.                              |
+| **Use Case**  | Framework-heavy apps (Django/FastAPI) or large codebases.                           | Algorithmic IP where logic must be hidden.                              |
 | **Weakness**  | "Security by Obscurity." Vulnerable to memory dumping & decompilers (`uncompyle6`). | Breaks "Duck Typing" & external imports if not configured correctly.    |
 
-**Key Takeaway:** RFT provides superior security but requires a strict architectural boundary to prevent `ImportError` when external files try to access renamed functions.
+### 2. Challenges
 
-### 2. Just-In-Time (JIT) Compilation as a Security Measure
+#### Runtime Problem
 
-- **The Mechanism:** Converts Python functions into C-style machine instructions during the build process.
-- **The Security Gain:** Removes Python bytecode entirely for the protected functions. Even if memory is dumped, there is no `.pyc` structure for decompilers to read. An attacker must perform binary analysis (assembly language) using tools like Ghidra or IDA Pro.
-- **Limitations:** Dynamic features (`eval`, `exec`) cannot be JIT-compiled and silently fall back to standard obfuscation.
-- **Strategy:** Combine `--enable-jit` (logic hiding) with `--outer` (file-at-rest encryption) and `--enable-rft` (symbol scrambling).
+Because RFT renames functions, it is extremely difficult to obfuscate standard DRF capabilities like views, routing, models, ...etc., without the application breaking. This is because DRF expects these function names to be standard in the application. For example, `path('user/<id>/', views.get_user)` fails because RFT compiles the code from `def get_user(id):` into `def py_fn_1(py_arg_1):`, causing Django to first fail finding `views.get_user (AttributeError)`, and if fixed, fail passing the parameter `id=5 (TypeError)`.
 
-### 3. The "Split-Brain" Architecture Problem
+#### Module Boundary Problem
 
-- **Scenario:** A cleartext backend (Django) importing from a protected backend engine.
-- **Challenge:** RFT scrambles the engine's names, causing `ImportError` in the cleartext API.
-- **Solution:** The **Exclude List**. You must explicitly tell the obfuscator which names are part of the "Public Contract" (API) and must not be renamed.
+The solution to the above is to leave the DRF runtime unobfuscated since it contains no significant IP that needs to be protected. However, the same import depedency problem appears again due to the fact that you now have a boundary of unobfuscated (not renamed) and obfuscated (renamed) code -- causing **import dependency hell**.
+![alt text](./images/pyarmor_boundary_error.png)
+
+**Key Takeaway:** RFT is
 
 ---
 
