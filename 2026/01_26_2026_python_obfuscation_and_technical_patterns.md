@@ -1,8 +1,11 @@
-# Technical Journal: Python Obfuscation, Security & Architecture Patterns
+# Journal Entry: January 26, 2026
 
-**Date:** January 26, 2026
-**TAG:** Pyarmor, Django Architecture, Security, Obfuscation Reverse Engineering Prevention, and Design Patterns.
-**TOPIC** Pyarmor
+**Project ID:** f59a6424-be1f-49c7-82df-01efe73099e8 <br>
+**TAGS:** #pyarmor, #django #architecture, #obfuscation #security, #reverse_engineering_security, #design_pattern
+
+### Description:
+
+> This project was to research and implement a way to obfuscate certain modules of the application which contains intellectual property. This was necessasry due to the application code being directly deployed unto the client's machine. <br>
 
 ---
 
