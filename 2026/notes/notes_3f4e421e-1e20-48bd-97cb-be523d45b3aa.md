@@ -73,3 +73,15 @@ Key considerations
    - Uses a metadata sync channel (likely WebSocket or time-indexed HTTP) to fetch/push metadata matching the current playback time.
 
 !["Live DVR Component Diagram](../images/live_dvr_component_diagram.png)
+
+## 002
+
+The initial plan and architecture design were based on my own research, but before diving into implementation, I took the initiative to reach out to a senior engineer who has deep domain expertise in MISB standards and MPEG-TS streaming. This feature is an open-ended and complex challenge with little to no resources or guidance available online, particularly regarding the metadata synchronization problem. While implementing DVR features for video alone is relatively straightforward, the real challenge is synchronizing the metadata with a specific video frame or point in time.
+
+During our discussion, he showed me the work he’s been doing on playing MPEG-TS streams directly in the browser. He demonstrated a WebAssembly (Wasm) library he developed that allows for the demuxing of MPEG-TS in the browser. I was curious and amazed because I didn't realize such technology existed for the web. We talked about how WebAssembly works—essentially as an extension of web browsers that allows for running isolated, high-performance code. You write the code in a language like C or C++, compile it into WebAssembly machine language, and then the browser's JS engine can execute it via the WebAssembly API. It’s a very cool concept; since the technology is relatively new and not yet fully mature, it’s fun to explore the boundaries of what’s possible.
+
+The limitation with using his WebAssembly library in our case was that it currently only works with MPEG-TS files uploaded directly into the browser. While the demuxing and decoding of the KLV was functional, it wasn't enough to cover the full DVR functionality and scope we need. I proposed a way to leverage HLS, since it already segments the stream into MPEG-TS files. If we could segment the stream with the KLV metadata attached, we could read those segments from an ABR-compatible client like Shaka Player and use his WebAssembly decoder to extract the metadata section from the incoming segments.
+
+He then advised me to look into the MISB ST 1910 standard, which defines the encoding of KLV metadata in an ABR protocol, specifically using the Common Media Application Format (CMAF). I had done some brief research on CMAF before but dismissed it as out of scope, thinking we didn't need the versatility of a protocol that supports both HLS and MPEG-DASH simultaneously. However, he explained that CMAF has a property called `emsg` boxes designed specifically for carrying KLV metadata. Thanks to this discussion, I finally have a clear direction on how to tackle the metadata synchronization problem.
+
+# 003
